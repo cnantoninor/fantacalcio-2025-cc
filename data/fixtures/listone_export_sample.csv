@@ -1,0 +1,16 @@
+Id;R;RM;Nome;Squadra;Qt.A;Qt.I;Diff.;Qt.A M;Qt.I M;Diff.M;FVM;FVM M
+1001;P;Por;Svilar;Roma;18;16;2;18;16;2;60;60
+1002;P;Por;Martinez Jo.;Inter;17;15;2;17;15;2;58;58
+1003;D;Dc;Bastoni;Inter;22;20;2;22;20;2;65;65
+1004;D;Dd;Di Lorenzo;Napoli;19;18;1;19;18;1;60;60
+1005;D;Ds;De Ketelaere Bram;Atalanta;14;12;2;14;12;2;40;40
+1006;C;M;Barella;Inter;28;25;3;28;25;3;80;80
+1007;C;C;Fabbian;Bologna;12;10;2;12;10;2;35;35
+1008;A;Pc;Dybala Paulo;Roma;24;22;2;24;22;2;75;75
+1009;A;A;Lookman Ademola;Atalanta;30;28;2;30;28;2;85;85
+1010;A;W;Politano;Napoli;16;14;2;16;14;2;45;45
+1011;D;B;Karsdorp;Svincolato;5;5;0;5;5;0;10;10
+1012;C;T;Miretti;Juventus;8;7;1;8;7;1;20;20
+;C;M;Senza Id Esempio;Torino;9,5;9;0,5;9,5;9;0,5;22;22
+1014;C;M;;Fiorentina;7;6;1;7;6;1;18;18
+1015;D;Dc;Solo Ruolo Mantra;Genoa;;6;;6;6;;15;15
