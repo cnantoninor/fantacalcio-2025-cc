@@ -1,162 +1,119 @@
-# CLAUDE.md
+# FANTABUSTE — regole di progetto
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## Contesto completo
+Il progetto è documentato per intero in `docs/DESIGN.md` — leggilo prima di
+iniziare qualsiasi fase, e in particolare prima della Fase 0. Contiene il
+perché di ogni scelta (perché il baseline è primario in B, perché serve
+K≥30 osservazioni per fascia in C, perché F non fa scraping, perché F
+riusa il solver di D, la watchlist di F, ecc.). Questo file (`CLAUDE.md`)
+è solo il riassunto sempre attivo — se manca un dettaglio, è in DESIGN.md,
+non va indovinato né reinventato.
 
-## Development Commands
+Insieme a DESIGN.md vanno letti:
+- `docs/LEAGUE_CONTEXT.md` — trascrizione del **regolamento reale della lega**
+  (`docs/Archivio_Master_Fantacalcio_Contesto_Lega_V4.pdf`). È la **fonte
+  autorevole sul regolamento**: dove DESIGN.md assume qualcosa di diverso,
+  vince LEAGUE_CONTEXT.
+- `docs/OPEN_QUESTIONS.md` — le divergenze note fra i due e i parametri di
+  regolamento ancora mancanti. **Da risolvere prima di congelare `schemas.py`.**
 
-### Installation and Setup
+## ⚠️ Dati
+Tutti i numeri nei documenti di ricerca allegati al progetto sono
+ESEMPLIFICATIVI. Nessun numero preso da un documento generato da un LLM
+entra in un modello, in un backtest o in un'offerta reale. Ogni record
+porta `fonte` e `is_synthetic: bool`. Nessuna offerta reale da dati
+sintetici — mai proseguire silenziosamente, fallire in modo esplicito.
+
+Questo vale in particolare per i piani busta delle stagioni passate presenti
+su Google Drive: sono **offerte pianificate da un LLM**, non offerte realmente
+presentate né esiti d'asta, e contengono affermazioni non verificate sugli
+avversari. Non sono una fonte di dati.
+
+## ⚠️ Nessuno scraping, nessuna automazione della piattaforma
+Deciso e definitivo: il Modulo F (asta di riparazione) è a inserimento
+manuale. I ToS di Fantacalcio s.r.l. vietano esplicitamente scraping e
+accesso automatizzato alla piattaforma (leghe.fantacalcio.it), con
+sospensione dell'account come conseguenza possibile — un rischio
+inaccettabile se scatta durante l'asta vera. Il divieto è sulla
+categoria (accesso automatizzato senza autorizzazione), non sullo
+strumento: vale per Playwright, per Claude in Chrome, per qualsiasi
+automazione futura. Non proporre, implementare o abilitare automazioni
+di lettura/scrittura verso quella piattaforma in nessun modulo, nemmeno
+"solo in lettura" o "solo per test".
+
+## Struttura della mia asta
+Da `docs/LEAGUE_CONTEXT.md` (regolamento di lega 2026/27):
+
+- **Fase busta chiusa: 2 tornate, fisse.** 2 settembre h20:00 e 3 settembre h20:00.
+- **Rosa fase 1: 2 P – 8 D – 8 C – 6 A = 24**, da completare obbligatoriamente
+  entro il 7 settembre h20:00.
+- **Il mercato ad asta apre il 3 settembre h20:00, in contemporanea con la
+  seconda tornata a buste chiuse** — non dopo. Le due fasi si sovrappongono e
+  condividono il budget.
+- **Il 7 settembre h20:00**: +50 crediti a tutti, +2 slot per ruolo, rosa massima
+  4 P – 10 D – 10 C – 8 A = 32 (slot aggiuntivi **non** obbligatori). Il mercato
+  prosegue fino alla scadenza definitiva.
+- **Regolamento speciale portieri** (Top 8, esclusività fra Top 8 di squadre
+  diverse, diritto sul secondo portiere della stessa squadra, garanzia del
+  titolare d'ufficio): vedi LEAGUE_CONTEXT §4–5. Sono vincoli **condizionali**,
+  vanno modellati nel MILP, non ignorati.
+- **Modificatori** difesa / centrocampo / attacco: vedi LEAGUE_CONTEXT §7.
+  Rendono il valore di un giocatore **dipendente dal resto della rosa** — il
+  modificatore difesa usa portiere + 3 migliori difensori. L'obiettivo lineare
+  e separabile del MILP non lo cattura: vedi `docs/OPEN_QUESTIONS.md` §1.4.
+- Lavoro da solo. Watchlist del Modulo F: K = 8 di default.
+- Dettagli completi di regolamento in `config/league.yaml`.
+
+**Non confermati dal regolamento** (DESIGN.md li dà per certi, il regolamento di
+lega non li cita — trattali come da verificare, non come acquisiti): regola dei
+pareggi, offerte non tonde, timer fisso senza soft-close nell'asta a tempo,
+budget totale, numero di partecipanti. Vedi `docs/OPEN_QUESTIONS.md` §4.
+
+## Stato dei dati storici (verificato 2026-08-25)
+**Non esiste storico di offerte avversarie.** Su Drive c'è un solo foglio d'asta
+reale (set. 2017) e contiene esclusivamente le mie offerte, senza esiti. Il
+Modulo C quindi **degrada a modalità `prior`** per sua stessa regola (K≥30
+osservazioni per fascia): nessuna fascia è fittabile su dati empirici.
+Non spacciare per `empirical` ciò che non lo è. Dettagli in
+`docs/OPEN_QUESTIONS.md` §2.
+
+Corollario operativo: **catturare le offerte di quest'anno** (schema
+`OpponentBidObservation`, tutte le offerte dopo ogni tornata) è l'investimento
+con il ritorno più alto del progetto — è ciò che rende `empirical` possibile
+l'anno prossimo. Non tagliare quel pezzo.
+
+## Confini di modulo
+Se il tuo lavoro richiede di modificare `schemas.py` o file di un altro
+modulo: FERMATI e segnalalo. Non modificare unilateralmente i contratti
+condivisi. Il Modulo F dipende dal **codice** del solver di D (non solo
+dal suo schema dati): F parte solo dopo che D è mergiato.
+
+## Standard
+- Nessun numero magico hardcoded: tutto in config/.
+- Ogni modello ML ha un baseline trasparente come confronto e come fallback.
+- Ogni approssimazione è dichiarata nel docstring, non nascosta.
+- Test girano su fixture sintetiche, mai su dati reali.
+- data/raw/ è read-only.
+
+## Sequenza di lavoro
+Fase 0 (fondamenta, sequenziale) → Fase 1: A, B, C, D in parallelo →
+merge → Fase 2: E e F in parallelo → sostituzione fixture con dati reali.
+Dettagli completi, task per agente e Definition of Done: `docs/DESIGN.md`.
+
+## Codice preesistente (legacy)
+Il repo contiene una pipeline precedente in `antoninorau/fantacalcio/`
+(`phase1_data_collection` → `phase4_bid_optimization`, orchestrata da
+`FantacalcioRecommender`), scritta per un'asta classica con rosa 3-7-8-5 e
+budget 500 hardcoded. **Non è la base di FANTABUSTE** e non rispetta gli
+standard qui sopra (numeri magici, fallback silenzioso su dati sintetici,
+scraping di Fantacalcio.it). Trattala come materiale di consultazione:
+riusa idee o frammenti dove utile — l'impostazione PuLP del Modulo D è il
+candidato più plausibile — ma non estenderla in place e non importarla
+dai nuovi moduli.
+
+### Comandi della pipeline legacy
 ```bash
-# Install dependencies
 pip install -r requirements.txt
-
-# Verify installation
-python -c "import pandas, numpy, sklearn, xgboost, lightgbm, pulp; print('All dependencies installed successfully!')"
+python main.py                       # analisi completa con default
+python -m antoninorau.fantacalcio.data_collection   # test singolo modulo
 ```
-
-### Running the System
-```bash
-# Run complete analysis with default settings
-python main.py
-
-# Import and use programmatically
-python -c "from antoninorau.fantacalcio import FantacalcioRecommender; rec = FantacalcioRecommender(); results = rec.run_complete_analysis()"
-```
-
-### Testing and Validation
-```bash
-# Test individual modules
-python -m antoninorau.fantacalcio.data_collection
-python -m antoninorau.fantacalcio.performance_prediction
-python -m antoninorau.fantacalcio.opponent_modeling
-python -m antoninorau.fantacalcio.bid_optimization
-
-# Validate data quality
-python -c "from antoninorau.fantacalcio import FantacalcioDataCollector; collector = FantacalcioDataCollector(); df = collector.create_master_dataframe(); print(f'Players: {df[\"player_name\"].nunique()}')"
-```
-
-## Architecture Overview
-
-### Four-Phase Pipeline Architecture
-The system follows a strict sequential pipeline with each phase depending on the previous:
-
-1. **Phase 1: Data Collection** (`antoninorau.fantacalcio.data_collection`)
-   - Web scraping from Fantacalcio.it, FBref, Transfermarkt
-   - Structured data output via `FantacalcioDataCollector` class
-   - Fallback to sample data when web scraping fails
-
-2. **Phase 2: Performance Prediction** (`antoninorau.fantacalcio.performance_prediction`)
-   - ML models (XGBoost/LightGBM) for fantasy score prediction
-   - Feature engineering with lagged variables and age curves
-   - `FantacalcioPredictor` class with configurable model types
-
-3. **Phase 3: Opponent Modeling** (`antoninorau.fantacalcio.opponent_modeling`)
-   - Historical auction analysis via `OpponentModeler` class
-   - Market price estimation and win probability calculation
-   - Manager behavioral profiling and clustering
-
-4. **Phase 4: Bid Optimization** (`antoninorau.fantacalcio.bid_optimization`)
-   - Integer Linear Programming using PuLP library
-   - Budget and roster constraints optimization
-   - `BidOptimizer` class with sensitivity analysis
-
-### Key Integration Points
-
-**Main Orchestrator**: `FantacalcioRecommender` class in `antoninorau.fantacalcio.fantacalcio_recommender`
-- Manages the complete pipeline execution
-- Handles error recovery and fallback strategies
-- Exports results to CSV files when `save_results=True`
-
-**Data Flow**:
-```
-Raw Data → ML Predictions → Market Analysis → Optimal Bids
-```
-
-**Critical Dependencies**:
-- Each phase requires successful completion of previous phases
-- `OpponentModeler` requires historical auction data (uses sample data as fallback)
-- `BidOptimizer` uses both predictions and market analysis for optimization
-
-### Roster Constraints System
-```python
-# Standard Fantacalcio roster (22 players total)
-RosterConstraints(
-    goalkeepers=3,    # GK
-    defenders=7,      # DF  
-    midfielders=7,    # MF
-    forwards=5        # FW
-)
-```
-
-### Risk Tolerance Configuration
-- `0.3-0.5`: Conservative (higher win probability, lower bids)
-- `0.7`: Moderate/Default (balanced approach)
-- `0.8-0.9`: Aggressive (higher risk, potential bargains)
-
-## Critical Implementation Details
-
-### Web Scraping Resilience
-- Graceful degradation when external sources fail
-- Automatic fallback to sample/cached data
-- Rate limiting and retry mechanisms built-in
-
-### Optimization Engine
-- Uses PuLP for mathematical programming
-- Handles infeasible solutions with greedy fallback
-- Supports sensitivity analysis across risk levels
-
-### Model Training
-- Cross-validation with time-series aware splits
-- Feature importance analysis for interpretability
-- Support for both XGBoost and LightGBM backends
-
-### Data Validation
-Essential checks when working with player data:
-```python
-# Always validate data structure
-required_columns = ['player_name', 'season', 'position', 'fantavoto_avg']
-assert all(col in df.columns for col in required_columns)
-
-# Check position distribution
-print(df['position'].value_counts())  # Should show GK, DF, MF, FW
-
-# Validate budget constraints
-assert df['recommended_bid'].sum() <= 500  # Total budget limit
-```
-
-### Error Handling Patterns
-- Web scraping failures → Use sample data
-- Optimization infeasible → Greedy algorithm fallback
-- Missing features → Imputation with position averages
-- Model training failures → Linear regression fallback
-
-## Key Configuration Parameters
-
-### Budget Settings
-```python
-TOTAL_BUDGET = 500      # Million (standard league budget)
-MIN_BID = 1            # Million (minimum bid amount)  
-MAX_BID = 150          # Million (reasonable maximum)
-```
-
-### Model Parameters
-```python
-# XGBoost default settings
-xgb_params = {
-    'n_estimators': 200,
-    'max_depth': 6,
-    'learning_rate': 0.1,
-    'subsample': 0.8
-}
-
-# Feature engineering windows
-LAG_PERIODS = [1, 2, 3]  # Seasons for lagged features
-AGE_CURVE_POSITIONS = ['GK', 'DF', 'MF', 'FW']  # Position-specific age curves
-```
-
-### Output Files Structure
-When `save_results=True`:
-- `fantacalcio_player_data.csv` → Raw collected data
-- `fantacalcio_predictions.csv` → ML predictions
-- `fantacalcio_market_analysis.csv` → Market intelligence
-- `fantacalcio_recommendations.csv` → **Final bid suggestions**
-- `fantacalcio_opponent_summary.csv` → Manager profiles
