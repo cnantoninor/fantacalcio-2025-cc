@@ -220,6 +220,30 @@ parametro calibrato in v1, non un dato "grezzo" da spacciare per empirico —
 va marcato `fonte="fantalab_pma_2026"`, `is_synthetic=False` ma con
 `confidence_flag` bassa/media nel report per il mismatch di meccanismo.
 
+#### FOLLOW-UP DI PROGETTO (2026-08-25) — non ancora in corso
+
+L'utente ha un account Premium FantaLab ed estrarrà il PMA **in autonomia,
+dal proprio laptop** (eventualmente con automazione locale, es. Playwright —
+sua scelta e suo rischio sul rispetto dei ToS di fantalab.it, non verificati
+da questo ambiente). Nessuna automazione verso fantalab.it viene tentata da
+questa sessione/da questo repo.
+
+**Formato atteso quando arriva il dato**, per essere ingeribile dalla
+calibrazione del prior in `src/fantabuste/bidmodel/` (una riga per giocatore
+o per fascia, filtrato sulla configurazione 12 partecipanti / 500 crediti):
+
+```
+ruolo,giocatore,squadra,quotazione_listone,pma_12p_500cr
+```
+
+Non serve il listone intero: bastano abbastanza righe da coprire ogni
+combinazione ruolo × tier di quotazione con almeno un paio di osservazioni,
+dato che il PMA calibra un parametro per fascia (`prior_mu`), non un valore
+per singolo giocatore. Quando il file arriva, va salvato in `data/raw/`
+(gitignored, dato reale non sintetico) con `fonte="fantalab_pma_2026"` e
+`is_synthetic=False`, e il Modulo C va esteso con una funzione di
+calibrazione che lo consuma — non ancora implementata.
+
 Restano due cose che vale la pena verificare **dentro l'app** (a mano, non da
 codice), perché sono decisioni di configurazione della lega e risolvono due
 questioni aperte:
