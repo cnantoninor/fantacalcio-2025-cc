@@ -1,0 +1,69 @@
+# Esempio annotato di config/league.yaml (che è gitignorato: contiene il
+# regolamento reale della tua lega). Copia questo file in league.yaml e
+# correggi i valori marcati "DA CONFERMARE" — vedi docs/OPEN_QUESTIONS.md §4.
+#
+# Nessun modulo deve avere numeri di regolamento hardcoded: tutto passa da qui.
+
+# --- Partecipanti e budget --------------------------------------------------
+n_partecipanti: 12          # confermato 2026-08-25
+
+budget_totale_fase1: 500    # confermato 2026-08-25
+budget_bonus_fase2: 50      # +50 crediti assegnati il 7 settembre (LEAGUE_CONTEXT §2)
+
+# --- Composizione rosa -------------------------------------------------------
+# Fase 1 (entro il 7 settembre, obbligatoria): 2 P - 8 D - 8 C - 6 A = 24
+rosa_fase1:
+  P: 2
+  D: 8
+  C: 8
+  A: 6
+
+# Fase 2 (dal 7 settembre, slot aggiuntivi NON obbligatori): 4 P - 10 D - 10 C - 8 A = 32
+rosa_fase2_massima:
+  P: 4
+  D: 10
+  C: 10
+  A: 8
+
+# --- Struttura dell'asta a busta chiusa --------------------------------------
+n_tornate_buste: 2          # confermato, fisso — LEAGUE_CONTEXT §2
+
+# DA CONFERMARE: impostazione "Assegna buste se uguali" della piattaforma.
+# false (default piattaforma) = pareggio -> giocatore non assegnato, torna
+# alla tornata successiva. true = va a chi ha presentato la busta per primo.
+# Verificare in leghe.fantacalcio.it come admin — vedi OPEN_QUESTIONS §2.1.
+assegna_buste_se_uguali: false
+
+# Ha senso solo se assegna_buste_se_uguali=false: sposta le offerte lontano
+# da multipli tondi (es. 40 -> 41) per rompere i pareggi a proprio favore.
+offerte_non_tonde: true
+
+# --- Modificatore difesa/centrocampo/attacco ---------------------------------
+# NON modellato nel MILP della v1 (decisione 2026-08-25, vedi OPEN_QUESTIONS
+# §0): il valore di un giocatore dipenderebbe dal resto della rosa, rompendo
+# la separabilità dell'obiettivo lineare. Riportato qui solo come promemoria
+# per il report testuale — vedi LEAGUE_CONTEXT §7.
+modificatore_difesa: true
+
+# --- Regolamento portieri Top 8 -----------------------------------------------
+# NON modellato nel MILP della v1 (vincoli condizionali, costoso da linearizzare
+# — vedi OPEN_QUESTIONS §1.3). Emesso solo come avvertenza testuale nel report.
+regolamento_portieri_top8_attivo: true
+
+# --- Vincoli di mercato --------------------------------------------------------
+# DA CONFERMARE: nessun documento lo specifica per questa lega.
+max_giocatori_per_squadra_serie_a: null
+
+# --- Modulo C: soglia minima osservazioni per fascia --------------------------
+bidmodel_min_osservazioni: 30   # sotto questa soglia la fascia degrada a 'prior'
+
+# --- Modulo F: asta di riparazione (fuori scope v1) ---------------------------
+# DA CONFERMARE: il regolamento di lega non specifica la meccanica del
+# mercato ad asta. DESIGN.md assumeva "lotti simultanei, timer fisso senza
+# soft-close" ma non è confermato per questa piattaforma/lega — OPEN_QUESTIONS §4.
+asta_riparazione:
+  tipo: tempo
+  sequenziale: false
+  soft_close: false
+  timer_secondi: null        # DA CONFERMARE
+  watchlist_size: 8

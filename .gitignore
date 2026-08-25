@@ -234,7 +234,9 @@ temp/
 tmp/
 
 # API keys and sensitive configuration
-config.py
+# (radice soltanto: senza lo slash iniziale questo pattern ignorerebbe anche
+# src/fantabuste/config.py, che è codice versionato, non un file di segreti)
+/config.py
 secrets.py
 .secrets
 api_keys.txt
@@ -263,7 +265,23 @@ Thumbs.db
 *.joblib
 
 # Large data directories
-data/
 datasets/
 raw_data/
 processed_data/
+
+# FANTABUSTE data layout: raw/processed are gitignored (real data, per-user),
+# fixtures/ is versioned on purpose (synthetic, is_synthetic=True, needed by
+# every module's tests independent of real data availability).
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# FANTABUSTE: the real league config carries this season's actual settings;
+# keep only the annotated example in version control.
+config/league.yaml
+
+# Re-include fixtures despite the *.csv/*.xlsx/*.json blanket rules above —
+# they are synthetic, versioned test data (is_synthetic=True), not scraped output.
+!data/fixtures/
+!data/fixtures/**
