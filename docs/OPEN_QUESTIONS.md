@@ -12,6 +12,32 @@
 
 ---
 
+## 0. Decisioni prese (2026-08-25)
+
+Scope della v1, decisa dal proprietario del progetto dato il vincolo di 8 giorni:
+
+- **Obiettivo v1: fase buste completa, 2 tornate.** Pipeline A→D più la gestione
+  stateful delle due tornate (Modulo E ridotto). Il Modulo F (mercato ad asta)
+  **non** è nella v1: il mercato resta aperto fino al 7 settembre e oltre, quindi
+  c'è tempo per aggiungerlo dopo la tornata 2.
+- **Nessun vincolo speciale nel modello v1.** Regolamento portieri Top 8,
+  modificatori e ricarica +50/+2 slot **non** entrano nel MILP: vengono emessi
+  come **avvertenze testuali nel report**, da gestire a mano. Le divergenze §1.2,
+  §1.3 e §1.4 qui sotto restano quindi **note ma deliberatamente non risolte nel
+  codice** della v1 — sono il primo candidato per la v2.
+- **`budget_totale: 500`** in prima fase.
+- Il Modulo C parte in modalità **`prior`** (vedi §2): nessuno storico di offerte
+  avversarie esiste, e i privilegi da amministratore non lo sbloccano (§2.1).
+
+**Conseguenza da tenere presente**: con i vincoli speciali fuori dal modello, le
+offerte prodotte dalla v1 sono un *punto di partenza da correggere a mano*, non
+un piano da eseguire alla lettera. Il report deve dirlo in modo inequivocabile,
+in particolare sui portieri (2 soli slot in fase 1 + regola Top 8 + garanzia del
+titolare rendono la strategia sui portieri il punto dove il modello semplificato
+sbaglia di più).
+
+---
+
 ## 1. Divergenze regolamento ↔ DESIGN.md
 
 ### 1.1 🔴 Il mercato ad asta NON è sequenziale rispetto alle buste
@@ -128,6 +154,45 @@ sistematici"), non un edge informativo sulle offerte altrui. E rende la
 il singolo investimento con il ritorno più alto — è ciò che rende `empirical`
 possibile l'anno prossimo.
 
+### 2.1 L'accesso da amministratore non recupera lo storico (ricerca 2026-08-25)
+
+Verificato sulla documentazione pubblica di Leghe Fantacalcio (solo ricerca web:
+il dominio `leghe.fantacalcio.it` è bloccato dal proxy di rete di questo
+ambiente, il che è comunque coerente con la regola "nessun accesso automatizzato
+alla piattaforma"):
+
+- **Il presidente di lega non può vedere le offerte dei partecipanti.** La guida
+  ufficiale è esplicita: *"Il Presidente di Lega ricordiamo che non può in nessun
+  caso vedere le offerte dei partecipanti alla sua Lega"*. Esiste solo un
+  **riepilogo aggregato**, limitato al mercato iniziale, che mostra per ogni
+  squadra il **numero di giocatori offerti** e i **kapitals impegnati** — non le
+  singole offerte, non per giocatore.
+- **L'export CSV esiste per le rose, non per le offerte.** Menù → Rose → Esporta
+  CSV, e l'import corrispondente in ADMIN → Gestione Rose. Serve a ricostruire
+  *chi ha preso chi e a quanto*, cioè i prezzi pagati dai vincitori, **non** le
+  offerte perdenti.
+
+**Conclusione**: i privilegi di amministratore **non** sbloccano lo storico delle
+offerte avversarie. Il massimo recuperabile a posteriori è l'export delle rose
+(prezzi vincenti), che soffre del bias di selezione descritto in DESIGN.md §A2 —
+si osserva solo il massimo della distribuzione, non la distribuzione.
+
+Restano due cose che vale la pena verificare **dentro l'app** (a mano, non da
+codice), perché sono decisioni di configurazione della lega e risolvono due
+questioni aperte:
+
+1. **Impostazione "Assegna buste se uguali"** → risolve `regola_pareggio` (§4).
+   Se **disattivata**: offerte pari ⇒ giocatore non assegnato, torna alla tornata
+   successiva (default della piattaforma, quello che DESIGN.md assume). Se
+   **attivata**: il giocatore va a chi ha presentato la busta **per primo** — e in
+   quel caso l'euristica delle **offerte non tonde** del Modulo D non serve più,
+   mentre diventa rilevante *quando* si invia la busta.
+2. **Cosa vedono i partecipanti a tornata chiusa** — se davvero tutte le offerte
+   di tutti (premessa di DESIGN.md §A4) o solo le vincenti. La documentazione
+   pubblica non lo specifica: dipende dalla configurazione. Determina se
+   `OpponentBidObservation` quest'anno raccoglierà la distribuzione completa o
+   solo la coda destra.
+
 ---
 
 ## 3. 🔴 Vincolo di tempo
@@ -146,10 +211,11 @@ Va deciso esplicitamente cosa entra nella v1 utilizzabile il 2 settembre.
 
 Non presenti in nessuno dei tre documenti, necessari per `config/league.yaml`:
 
-- **`budget_totale`** di fase 1 (il regolamento cita solo il +50 del 7 settembre).
-  Indizio non confermato: i piani busta 25/26 sommano a 500.
+- ~~**`budget_totale`** di fase 1~~ — **risolto: 500 crediti**, con il +50 del
+  7 settembre che si somma sopra (→ 550 complessivi in seconda fase).
 - **`n_partecipanti`** per la stagione 26/27 (l'esempio storico 2016/17 è "lega a 10";
-  i piani 25/26 nominano ~10-12 squadre).
+  i piani 25/26 nominano ~10-12 squadre). **Ancora da confermare** — entra nel
+  replacement level del VORP (Modulo B).
 - **`max_giocatori_per_squadra`** di Serie A: esiste un tetto?
 - **`regola_pareggio`**: DESIGN.md la dà per confermata (`nessuna_assegnazione`)
   in base ai regolamenti standard della piattaforma, ma il regolamento di lega
