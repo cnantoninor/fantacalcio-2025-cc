@@ -204,6 +204,11 @@ cython_debug/
 *.swp
 *.swo
 
+# Claude Code: worktrees created for parallel background agents (each is a
+# full checked-out copy of the repo on its own branch — infrastructure, not
+# project content; the agents' actual commits land on their own branches).
+.claude/worktrees/
+
 # Visual Studio Code
 .vscode/
 !.vscode/settings.json
