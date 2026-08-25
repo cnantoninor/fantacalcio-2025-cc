@@ -177,6 +177,49 @@ offerte avversarie. Il massimo recuperabile a posteriori è l'export delle rose
 (prezzi vincenti), che soffre del bias di selezione descritto in DESIGN.md §A2 —
 si osserva solo il massimo della distribuzione, non la distribuzione.
 
+### 2.2 FantaLab "Prezzo Medio Aste" (PMA) — utile, ma non è ciò che serve a `empirical` (ricerca 2026-08-25)
+
+Verificato via ricerca web (il dominio `fantalab.it` è bloccato dal proxy di
+rete di questo ambiente, quindi solo tramite fonti secondarie — SOS Fanta,
+FantaMaster, TuttoFantacalcio):
+
+- FantaLab pubblica un **Prezzo Medio Aste (PMA)** per giocatore: dichiarato
+  come dato reale ("non è una stima, è quello che i FantaPresidenti hanno
+  realmente speso"), aggregato dalle leghe che usano FantaLab/FantaCalcio-
+  Online **in tutta Italia**, **filtrabile per numero di partecipanti (8/10/
+  12/14) e budget (250/300/500/1000)** — combinazione 12 partecipanti/500
+  crediti disponibile, cioè esattamente la configurazione della nostra lega.
+- **Ma è solo il prezzo VINCENTE**, non tutte le offerte. Soffre dello stesso
+  bias di selezione descritto in DESIGN.md §A2 e in §2 qui sopra: si osserva
+  il massimo della distribuzione, non la distribuzione intera. **Non
+  sblocca la modalità `empirical`** di C, che richiede offerte vincenti +
+  perdenti per fittare la distribuzione vera.
+- **Probabile mismatch di meccanismo d'asta**: il PMA aggrega quasi certamente
+  soprattutto aste classiche/live (ascendenti), non buste chiuse (FPSBA). Sono
+  meccanismi diversi con dinamiche di prezzo diverse — è lo stesso motivo per
+  cui DESIGN.md tiene separati `OpponentBidObservation` (buste) e
+  `RepairLotResult` (asta a tempo) e vieta di fittare C sul secondo. Pooling
+  diretto del PMA nella distribuzione busta-chiusa richiede quindi una
+  cautela esplicita, non un uso 1:1.
+- **Nessun export CSV/API confermato**: è presentato come consultazione per
+  giocatore dentro l'app/sito durante la preparazione dell'asta, non come
+  dataset scaricabile. Verificare se serve l'abbonamento Premium (~13-17€)
+  per vederlo per intero o se la versione gratuita basta.
+- ToS di fantalab.it non verificati (sito irraggiungibile da questo ambiente).
+  Finché non sono confermati, vale la stessa cautela già adottata per
+  leghe.fantacalcio.it: **niente accesso automatizzato/scraping**, solo
+  consultazione manuale dall'utente.
+
+**Uso corretto**: il PMA non fa diventare C `empirical`, ma può fare un
+**`prior` molto più informativo** — invece di centrare `prior_mu` su
+`ratio=1` (offerta = quotazione, pura assunzione), calibrarlo sul rapporto
+osservato `PMA / quotazione_listone` per fascia, con `prior_sigma` che resta
+ampio per la varianza non catturata (mismatch di meccanismo, singola stagione
+aggregata, ecc.). È un miglioramento reale e concreto, da inserire come
+parametro calibrato in v1, non un dato "grezzo" da spacciare per empirico —
+va marcato `fonte="fantalab_pma_2026"`, `is_synthetic=False` ma con
+`confidence_flag` bassa/media nel report per il mismatch di meccanismo.
+
 Restano due cose che vale la pena verificare **dentro l'app** (a mano, non da
 codice), perché sono decisioni di configurazione della lega e risolvono due
 questioni aperte:
