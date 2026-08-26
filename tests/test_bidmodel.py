@@ -70,10 +70,18 @@ def _player(player_id: str, ruolo: str, quotazione: float, **overrides) -> Playe
 
 
 def _osservazione(
-    player_id: str, tornata: int, avversario_id: str, offerta: float, vincente: bool, **overrides
+    player_id: str,
+    tornata: int,
+    avversario_id: str,
+    offerta: float,
+    vincente: bool,
+    *,
+    stagione: str = "s1",
+    **overrides,
 ) -> OpponentBidObservation:
     base = dict(
         player_id=player_id,
+        stagione=stagione,
         tornata=tornata,
         avversario_id=avversario_id,
         offerta=offerta,
@@ -179,7 +187,7 @@ class TestNormalizzazione:
         # Stagione storica con budget pro-capite DOPPIO del riferimento:
         # un rapporto grezzo di 2.0 in quella stagione "vale" meno in
         # scala riferimento -> normalizzato a 1.0.
-        oss = [_osservazione("A1", 1, "AVV1", 20.0, True)]
+        oss = [_osservazione("A1", 1, "AVV1", 20.0, True, stagione="s_inflazionata")]
         stagione = StagioneStorica(
             label="s_inflazionata",
             osservazioni=oss,
@@ -213,7 +221,7 @@ class TestNormalizzazione:
         )
         s2 = StagioneStorica(
             label="s2",
-            osservazioni=[_osservazione("A1", 2, "AVV1", 12.0, True)],
+            osservazioni=[_osservazione("A1", 2, "AVV1", 12.0, True, stagione="s2")],
             quotazioni={"A1": 10.0},
             budget_totale=500,
             n_partecipanti=12,

@@ -9,6 +9,7 @@ from fantabuste.schemas import (
     OpponentBidObservation,
     Player,
     PlayerProjection,
+    PlayerStats,
     PriceDistribution,
     PriceDistributionMode,
     RepairLotResult,
@@ -134,12 +135,58 @@ def test_opponent_bid_observation_tornata_valida():
     with pytest.raises(ValidationError):
         OpponentBidObservation(
             player_id="P0001",
+            stagione="2026/27",
             tornata=3,  # solo 1 o 2 sono ammesse
             avversario_id="AVV1",
             offerta=10,
             vincente=True,
             fonte="test",
         )
+
+
+def test_opponent_bid_observation_richiede_stagione():
+    with pytest.raises(ValidationError):
+        OpponentBidObservation(
+            player_id="P0001",
+            tornata=1,
+            avversario_id="AVV1",
+            offerta=10,
+            vincente=True,
+            fonte="test",
+        )
+
+
+def _player_stats(**overrides) -> PlayerStats:
+    base = dict(
+        player_id="P0001",
+        stagione="2025/26",
+        squadra="SQ01",
+        presenze=30,
+        minuti=2500,
+        gol=5,
+        assist=3,
+        xG=4.5,
+        xA=2.5,
+        fantamedia=6.5,
+        rigori_battuti=0,
+        fonte="test",
+        is_synthetic=True,
+    )
+    base.update(overrides)
+    return PlayerStats(**base)
+
+
+def test_player_stats_richiede_squadra():
+    with pytest.raises(ValidationError):
+        _player_stats(squadra=None)
+
+
+def test_player_stats_squadra_puo_differire_da_player_squadra_attuale():
+    # PlayerStats.squadra e' la squadra IN QUELLA STAGIONE, non necessariamente
+    # quella corrente di Player.squadra (es. giocatore trasferito nel frattempo).
+    p = _player(squadra="SQ_ATTUALE")
+    ps = _player_stats(squadra="SQ_STORICA")
+    assert p.squadra != ps.squadra
 
 
 def test_auction_state_richiede_slot_totali_e_residui():

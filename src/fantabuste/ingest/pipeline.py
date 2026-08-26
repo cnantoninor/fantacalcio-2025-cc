@@ -74,6 +74,11 @@ class EsitoIngestStatistiche:
     matching: RisultatoMatching
     validazione: RapportoValidazione
     righe_senza_player_id: list[int] = field(default_factory=list)
+    # Righe con player_id risolto ma senza squadra per quella stagione
+    # riconoscibile nella fonte grezza — fallimento diverso da
+    # righe_senza_player_id: non produce PlayerStats (schemas.PlayerStats.squadra
+    # è obbligatoria), va tenuto separato per non confondere le due cause.
+    righe_senza_squadra: list[int] = field(default_factory=list)
     percorso_stats: Path | None = None
     percorso_match_report: Path | None = None
 
@@ -108,7 +113,7 @@ def ingest_statistiche(
     risultato_matching = esegui_matching(riferimento_giocatori, candidati, **soglie_matching)
 
     player_id_per_riga = dict(risultato_matching.player_id_per_candidato)
-    stats, righe_senza_match = normalizza_statistiche_grezze(
+    stats, righe_senza_match, righe_senza_squadra = normalizza_statistiche_grezze(
         df_grezzo, stagione=stagione, fonte=fonte, player_id_per_riga=player_id_per_riga
     )
 
@@ -125,6 +130,7 @@ def ingest_statistiche(
         matching=risultato_matching,
         validazione=rapporto_validazione,
         righe_senza_player_id=righe_senza_match,
+        righe_senza_squadra=righe_senza_squadra,
         percorso_stats=percorso_stats,
         percorso_match_report=percorso_report,
     )

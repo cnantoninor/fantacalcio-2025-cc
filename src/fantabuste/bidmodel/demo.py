@@ -38,6 +38,7 @@ from .normalizzazione import StagioneStorica, pool_stagioni
 from .report import genera_report
 
 FONTE_DEMO = "bidmodel_demo_v1"
+STAGIONE_DEMO = "2025/26"
 REPORT_DEFAULT_PATH = Path(__file__).resolve().parents[3] / "bidmodel_report.md"
 
 
@@ -115,6 +116,7 @@ def _osservazioni_storiche_demo(attaccanti: list[Player]) -> list[OpponentBidObs
                 oss.append(
                     OpponentBidObservation(
                         player_id=p.player_id,
+                        stagione=STAGIONE_DEMO,
                         tornata=tornata,  # type: ignore[arg-type]
                         avversario_id=avversario,
                         offerta=round(rapporto * p.quotazione_listone, 2),
@@ -134,7 +136,7 @@ def genera_report_demo(output_path: Path | str = REPORT_DEFAULT_PATH) -> Path:
 
     quotazioni = {p.player_id: p.quotazione_listone for p in players}
     stagione = StagioneStorica(
-        label="demo_stagione_corrente",
+        label=STAGIONE_DEMO,
         osservazioni=osservazioni,
         quotazioni=quotazioni,
         budget_totale=config.budget_totale_fase1,

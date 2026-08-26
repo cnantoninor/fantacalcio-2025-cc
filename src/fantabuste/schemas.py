@@ -85,6 +85,16 @@ class PlayerStats(SyntheticRecord):
 
     player_id: str
     stagione: str = Field(description="Es. '2024/25'.")
+    squadra: str = Field(
+        description=(
+            "Squadra del giocatore IN QUELLA STAGIONE — può differire da "
+            "Player.squadra, che è solo lo snapshot alla data di estrazione. "
+            "Necessario per l'aggiustamento da cambio squadra nel Modulo B "
+            "(baseline.py, FATTORE_CAMBIO_SQUADRA): senza questo campo non è "
+            "ricostruibile se un giocatore ha cambiato squadra tra le stagioni "
+            "storiche. Vedi la segnalazione dell'Agente B, docs/DESIGN.md."
+        )
+    )
     presenze: int = Field(ge=0)
     minuti: int = Field(ge=0)
     gol: int = Field(ge=0)
@@ -274,6 +284,14 @@ class OpponentBidObservation(SyntheticRecord):
     """
 
     player_id: str
+    stagione: str = Field(
+        description=(
+            "Es. '2026/27'. `tornata` (1|2) da sola non distingue le stagioni: "
+            "senza questo campo non è possibile poolare/normalizzare offerte "
+            "di anni diversi per fittare le fasce del Modulo C su più stagioni. "
+            "Vedi la segnalazione dell'Agente C, docs/DESIGN.md."
+        )
+    )
     tornata: Tornata
     avversario_id: str
     offerta: float = Field(gt=0)

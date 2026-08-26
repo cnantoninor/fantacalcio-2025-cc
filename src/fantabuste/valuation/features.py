@@ -5,13 +5,14 @@ usate sia dal baseline (`baseline.py`) sia dallo sfidante ML opzionale
 (`ml.py`). Non tocca `schemas.py`: `PlayerFeatures` è un tipo interno del
 modulo, non un contratto condiviso.
 
-Nota sul contratto dati (limite noto, non risolvibile qui): `PlayerStats` non
-porta un campo squadra per stagione, e `Player.squadra` è solo lo snapshot
-alla data di estrazione corrente. Non è quindi possibile ricostruire da questi
-due schemi se e quando un giocatore ha cambiato squadra tra le stagioni
-storiche osservate — l'informazione semplicemente non è nel contratto. Vedi
-`baseline.py::FATTORE_CAMBIO_SQUADRA` per come questo modulo dichiara (invece
-di nascondere) la conseguenza.
+Nota sul contratto dati: `PlayerStats.squadra` (aggiunto dopo la
+segnalazione dell'Agente B in Fase 1 — vedi docs/DESIGN.md) porta ora la
+squadra del giocatore IN QUELLA STAGIONE, quindi è possibile rilevare un
+cambio squadra confrontandola fra le stagioni osservate. Questo modulo non
+lo fa ancora: l'aggiustamento resta un no-op deliberato in v1 (vedi
+`baseline.py::FATTORE_CAMBIO_SQUADRA`) perché implementarlo richiede una
+scelta di modellazione (quanto scontare la proiezione per un cambio
+squadra) che non è stata specificata — non è più un limite di dati.
 """
 
 from __future__ import annotations
@@ -32,6 +33,7 @@ class StagioneFeatures:
     """Statistiche di una singola stagione, derivate da un PlayerStats."""
 
     stagione: str
+    squadra: str
     presenze: int
     minuti: int
     fantamedia: float
@@ -78,6 +80,7 @@ def _stagione_features(ps: PlayerStats) -> StagioneFeatures:
     quota_minuti = MINUTI_STAGIONE_PIENA
     return StagioneFeatures(
         stagione=ps.stagione,
+        squadra=ps.squadra,
         presenze=ps.presenze,
         minuti=ps.minuti,
         fantamedia=ps.fantamedia,

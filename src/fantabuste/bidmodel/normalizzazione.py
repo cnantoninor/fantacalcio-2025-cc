@@ -1,14 +1,17 @@
 """Normalizzazione dell'inflazione tra stagioni.
 
-⚠️ **Nota sul contratto (segnalata, non risolta unilateralmente — vedi
-CLAUDE.md "Confini di modulo")**: `OpponentBidObservation` e `Player` in
-`schemas.py` non portano un campo `stagione`. Questo modulo non può quindi
-dedurre da solo a quale stagione appartiene un'osservazione storica: il
-chiamante (oggi: i test di questo modulo con fixture sintetiche inline; in
-futuro: il Modulo E, che sa già da quale file/stagione ha caricato ogni
-`OpponentBidObservation`) deve fornire esplicitamente il raggruppamento per
-stagione tramite `StagioneStorica`. Vedi il report finale dell'Agente C per
-la segnalazione completa di questo gap.
+`OpponentBidObservation` porta ora un campo `stagione` (aggiunto al
+contratto congelato dopo la segnalazione dell'Agente C in Fase 1 — vedi
+docs/DESIGN.md). `StagioneStorica.label` resta comunque il raggruppamento
+esplicito passato dal chiamante, per due motivi che il campo da solo non
+risolve: (1) il contesto di normalizzazione (`quotazioni`, `budget_totale`,
+`n_partecipanti` di QUELLA stagione) non è nello schema di
+`OpponentBidObservation` e va comunque fornito a parte — il listone cambia
+stagione per stagione e `Player.quotazione_listone` porta solo il valore
+corrente; (2) `__post_init__` verifica ora che ogni osservazione in
+`osservazioni` abbia `stagione == label`, così un raggruppamento con dati di
+stagioni mescolate per errore fallisce esplicitamente invece di produrre una
+normalizzazione silenziosamente sbagliata.
 
 Metodo di normalizzazione — **approssimazione dichiarata**, non un modello
 econometrico rigoroso: si assume che il livello dei prezzi (il rapporto
@@ -51,6 +54,14 @@ class StagioneStorica:
             raise ValueError(f"{self.label}: budget_totale deve essere positivo")
         if self.n_partecipanti <= 0:
             raise ValueError(f"{self.label}: n_partecipanti deve essere positivo")
+        for oss in self.osservazioni:
+            if oss.stagione != self.label:
+                raise ValueError(
+                    f"StagioneStorica(label={self.label!r}): osservazione "
+                    f"player_id={oss.player_id!r} ha stagione={oss.stagione!r}, "
+                    "diversa da label. Ogni osservazione deve appartenere alla "
+                    "stagione dichiarata dal raggruppamento in cui è inserita."
+                )
 
     @property
     def budget_procapite(self) -> float:

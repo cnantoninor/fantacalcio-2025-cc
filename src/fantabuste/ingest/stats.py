@@ -124,7 +124,7 @@ def normalizza_statistiche_grezze(
     stagione: str,
     fonte: str,
     player_id_per_riga: dict[int, str],
-) -> tuple[list[PlayerStats], list[int]]:
+) -> tuple[list[PlayerStats], list[int], list[int]]:
     """Normalizza un DataFrame di statistiche grezze in `PlayerStats[]`.
 
     `player_id_per_riga` collega l'indice di riga del DataFrame (posizione,
@@ -134,11 +134,19 @@ def normalizza_statistiche_grezze(
     escluse e i loro indici ritornati separatamente: non produciamo mai una
     `PlayerStats` orfana con un player_id indovinato.
 
+    `PlayerStats.squadra` (la squadra del giocatore IN QUESTA STAGIONE, non
+    quella attuale — vedi schemas.py) è obbligatoria nel contratto: una riga
+    con player_id risolto ma senza colonna/valore squadra riconoscibile non
+    produce comunque una `PlayerStats` (mai una squadra indovinata o vuota),
+    e il suo indice va nel terzo elemento restituito, separato dalle righe
+    senza player_id — sono due fallimenti diversi, non vanno confusi.
+
     Ogni `PlayerStats` prodotta ha `is_synthetic=False`.
     """
     df = _appiattisci_colonne(df).reset_index(drop=True)
     colonne_normalizzate = {c: _normalizza_header(c) for c in df.columns}
 
+    col_squadra = _trova_colonna(colonne_normalizzate, _ALIAS_SQUADRA)
     col_presenze = _trova_colonna(colonne_normalizzate, _ALIAS_PRESENZE)
     col_minuti = _trova_colonna(colonne_normalizzate, _ALIAS_MINUTI)
     col_gol = _trova_colonna(colonne_normalizzate, _ALIAS_GOL)
@@ -149,11 +157,17 @@ def normalizza_statistiche_grezze(
 
     risultati: list[PlayerStats] = []
     righe_senza_match: list[int] = []
+    righe_senza_squadra: list[int] = []
 
     for indice, riga in df.iterrows():
         player_id = player_id_per_riga.get(int(indice))
         if player_id is None:
             righe_senza_match.append(int(indice))
+            continue
+
+        squadra = str(riga.get(col_squadra, "") or "").strip() if col_squadra else ""
+        if not squadra:
+            righe_senza_squadra.append(int(indice))
             continue
 
         gol = int(round(_numero(riga.get(col_gol)) if col_gol else 0.0))
@@ -177,6 +191,7 @@ def normalizza_statistiche_grezze(
             PlayerStats(
                 player_id=player_id,
                 stagione=stagione,
+                squadra=squadra,
                 presenze=max(0, presenze),
                 minuti=max(0, minuti),
                 gol=max(0, gol),
@@ -190,7 +205,7 @@ def normalizza_statistiche_grezze(
             )
         )
 
-    return risultati, righe_senza_match
+    return risultati, righe_senza_match, righe_senza_squadra
 
 
 def estrai_nomi_squadre(df: pd.DataFrame) -> list[tuple[str, str | None]]:

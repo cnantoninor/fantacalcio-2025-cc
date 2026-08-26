@@ -43,6 +43,7 @@ def _stats(**overrides) -> PlayerStats:
     base = dict(
         player_id="P0001",
         stagione="2024/25",
+        squadra="SQ01",
         presenze=30,
         minuti=2500,
         gol=10,

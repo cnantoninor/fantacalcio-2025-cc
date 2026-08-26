@@ -55,14 +55,17 @@ bassa confidenza (pochi minuti, shrinkage forte): la dispersione di ruolo da
 sola sottostima l'incertezza quando il dato individuale è quasi assente."""
 
 FATTORE_CAMBIO_SQUADRA = 1.0
-"""Aggiustamento per cambio squadra (punto 3 di DESIGN.md): LIMITE DI
-CONTRATTO NOTO, non un'omissione di questo modulo. `PlayerStats` non porta un
-campo squadra per stagione e `Player.squadra` è solo lo snapshot corrente
-(vedi features.py) — non è quindi possibile ricostruire da schemas.py se un
-giocatore ha cambiato squadra tra le stagioni storiche. Finché il contratto
-non espone questo dato (di competenza del Modulo A), il fattore resta 1.0
-(nessun aggiustamento) invece di un'euristica non verificabile. Segnalato nel
-report (valuation_report.md) e nel report finale dell'agente, non nascosto."""
+"""Aggiustamento per cambio squadra (punto 3 di DESIGN.md): NO-OP
+DELIBERATO, non più un limite di contratto. `PlayerStats.squadra` porta ora
+la squadra per stagione (aggiunta dopo la segnalazione dell'Agente B in Fase
+1 — vedi docs/DESIGN.md), quindi un cambio squadra fra le stagioni storiche
+è rilevabile confrontando `StagioneFeatures.squadra` fra le stagioni in
+`PlayerFeatures.stagioni` (features.py). Il fattore resta 1.0 perché
+tradurre "ha cambiato squadra" in
+uno sconto numerico sulla proiezione è una scelta di modellazione (di
+quanto? in che direzione? dipende dal campionato di provenienza?) non
+ancora specificata, non perché il dato manchi. Segnalato nel report
+(valuation_report.md), non nascosto."""
 
 
 @dataclass(frozen=True)

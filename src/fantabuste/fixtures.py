@@ -54,6 +54,25 @@ def _genera_qualita(rng: random.Random) -> _Qualita:
     return _Qualita(valore=v)
 
 
+PROB_CAMBIO_SQUADRA_STAGIONE_PIU_VECCHIA = 0.10
+"""Probabilità che un giocatore risulti con una squadra diversa nella
+stagione storica più vecchia rispetto a quella attuale — dà a
+PlayerStats.squadra qualcosa di reale da testare per l'aggiustamento cambio
+squadra del Modulo B, invece di ripetere sempre lo stesso valore."""
+
+
+def _squadra_storica(
+    squadra_attuale: str, indice_stagione: int, n_stagioni: int, rng: random.Random
+) -> str:
+    e_la_piu_vecchia = indice_stagione == 0 and n_stagioni > 1
+    if not e_la_piu_vecchia or rng.random() >= PROB_CAMBIO_SQUADRA_STAGIONE_PIU_VECCHIA:
+        return squadra_attuale
+    altra_squadra = rng.randint(1, N_SQUADRE)
+    while f"SQ{altra_squadra:02d}" == squadra_attuale:
+        altra_squadra = rng.randint(1, N_SQUADRE)
+    return f"SQ{altra_squadra:02d}"
+
+
 def _quotazione(ruolo: Ruolo, qualita: _Qualita, rng: random.Random) -> float:
     lo, hi = QUOTAZIONE_RANGE[ruolo]
     base = lo + qualita.valore * (hi - lo)
@@ -125,12 +144,16 @@ def genera_fixture_giocatori(seed: int = 42) -> tuple[list[Player], list[PlayerS
                     )
                 )
 
-                for stagione in STAGIONI:
+                for indice_stagione, stagione in enumerate(STAGIONI):
                     s = _stats_stagione(ruolo, qualita, rng)
+                    squadra_stagione = _squadra_storica(
+                        squadra, indice_stagione, len(STAGIONI), rng
+                    )
                     stats.append(
                         PlayerStats(
                             player_id=player_id,
                             stagione=stagione,
+                            squadra=squadra_stagione,
                             fonte=FONTE,
                             is_synthetic=True,
                             **s,

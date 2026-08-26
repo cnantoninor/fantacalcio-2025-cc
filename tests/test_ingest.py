@@ -217,6 +217,7 @@ class TestValidaStatistiche:
         base = dict(
             player_id="X1",
             stagione="2025/26",
+            squadra="SQ01",
             presenze=20,
             minuti=1500,
             gol=5,
@@ -405,10 +406,11 @@ class TestNormalizzaStatistiche:
     def test_normalizzazione_produce_playerstats_valide(self):
         df = self._df_grezzo_multiindex()
         player_id_per_riga = {0: "R1", 1: "R2"}
-        stats, senza_match = normalizza_statistiche_grezze(
+        stats, senza_match, senza_squadra = normalizza_statistiche_grezze(
             df, stagione="2025/26", fonte="fbref_mock", player_id_per_riga=player_id_per_riga
         )
         assert senza_match == []
+        assert senza_squadra == []
         assert len(stats) == 2
         barella = next(s for s in stats if s.player_id == "R1")
         assert barella.gol == 6
@@ -416,20 +418,32 @@ class TestNormalizzaStatistiche:
         assert barella.presenze == 30
         assert barella.minuti == 2500
         assert barella.xG == 5.2
+        assert barella.squadra == "Inter"
         assert not barella.is_synthetic
         assert barella.fonte == "fbref_mock"
 
     def test_righe_senza_match_escluse_non_indovinate(self):
         df = self._df_grezzo_multiindex()
-        stats, senza_match = normalizza_statistiche_grezze(
+        stats, senza_match, _ = normalizza_statistiche_grezze(
             df, stagione="2025/26", fonte="fbref_mock", player_id_per_riga={0: "R1"}
         )
         assert len(stats) == 1
         assert senza_match == [1]
 
+    def test_riga_senza_squadra_riconoscibile_esclusa_non_indovinata(self):
+        df = self._df_grezzo_multiindex()
+        df.loc[1, ("Unnamed", "team")] = ""  # squadra vuota per la seconda riga
+        stats, senza_match, senza_squadra = normalizza_statistiche_grezze(
+            df, stagione="2025/26", fonte="fbref_mock", player_id_per_riga={0: "R1", 1: "R2"}
+        )
+        assert len(stats) == 1
+        assert stats[0].player_id == "R1"
+        assert senza_match == []
+        assert senza_squadra == [1]
+
     def test_rigoristi_riconosciuti(self):
         df = self._df_grezzo_multiindex()
-        stats, _ = normalizza_statistiche_grezze(
+        stats, _, _ = normalizza_statistiche_grezze(
             df, stagione="2025/26", fonte="fbref_mock", player_id_per_riga={0: "R1", 1: "R2"}
         )
         dybala = next(s for s in stats if s.player_id == "R2")
@@ -502,7 +516,9 @@ class TestPipeline:
         assert esito_stats.percorso_match_report.exists()
         assert len(esito_stats.stats) == 1  # solo Svilar ha match alta confidenza
         assert esito_stats.stats[0].player_id == "listone_1001"
+        assert esito_stats.stats[0].squadra == "Roma"
         assert esito_stats.righe_senza_player_id == [1]
+        assert esito_stats.righe_senza_squadra == []
 
         report_df = pd.read_csv(esito_stats.percorso_match_report)
         assert len(report_df) == 2  # ENTRAMBI i candidati, match e non, sono tracciati
